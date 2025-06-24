@@ -16,5 +16,6 @@ public class UserProfileResponse {
     private String email;
     private String fullName;
     private String avatarUrl;
+    private String phone; // <<== THÊM TRƯỜG CÒN THIẾU VÀO ĐÂY
     private Set<String> roles;
 }

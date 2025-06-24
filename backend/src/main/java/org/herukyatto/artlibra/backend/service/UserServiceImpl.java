@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.herukyatto.artlibra.backend.dto.UpdateProfileRequest; // <<== THÊM DÒNG NÀY
 
 import java.util.stream.Collectors;
 
@@ -54,5 +55,35 @@ public class UserServiceImpl implements UserService, UserDetailsService { // <<=
         // Cách đơn giản nhất là xóa trực tiếp, JPA sẽ xử lý bảng trung gian user_roles
         userRepository.deleteById(userId);
         System.out.println("Successfully deleted user with ID: " + userId);
+    }
+    @Override
+    @Transactional
+    public UserProfileResponse updateUserProfile(UpdateProfileRequest request) {
+        // Lấy user đang đăng nhập từ context bảo mật
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!(principal instanceof User)) {
+            throw new IllegalStateException("User not authenticated correctly.");
+        }
+        User currentUser = (User) principal;
+
+        // Cập nhật các trường thông tin
+        currentUser.setFullName(request.getFullName());
+        currentUser.setPhone(request.getPhone());
+        // TODO: Thêm logic cập nhật avatarUrl sau này
+
+        // Lưu lại user đã được cập nhật vào CSDL
+        User updatedUser = userRepository.save(currentUser);
+
+        // Chuyển đổi entity đã cập nhật thành DTO để trả về
+        return UserProfileResponse.builder()
+                .id(updatedUser.getId())
+                .email(updatedUser.getEmail())
+                .fullName(updatedUser.getFullName())
+                .avatarUrl(updatedUser.getAvatarUrl())
+                .phone(updatedUser.getPhone())
+                .roles(updatedUser.getRoles().stream()
+                        .map(role -> role.getName().name())
+                        .collect(Collectors.toSet()))
+                .build();
     }
 }

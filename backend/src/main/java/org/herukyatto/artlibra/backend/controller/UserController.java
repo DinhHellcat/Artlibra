@@ -5,17 +5,24 @@ import org.herukyatto.artlibra.backend.dto.UserProfileResponse;
 import org.herukyatto.artlibra.backend.service.UserService; // <<== Đổi thành interface
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.herukyatto.artlibra.backend.dto.UpdateProfileRequest; // <<== IMPORT MỚI
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService; // <<== Đổi thành interface
+    private final UserService userService;
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getCurrentUser() {
         return ResponseEntity.ok(userService.getCurrentUserProfile());
+    }
+
+    // === ENDPOINT MỚI ĐỂ CẬP NHẬT PROFILE ===
+    @PutMapping("/me")
+    public ResponseEntity<UserProfileResponse> updateUserProfile(@RequestBody UpdateProfileRequest request) {
+        return ResponseEntity.ok(userService.updateUserProfile(request));
     }
 
     // === ENDPOINT MỚI ĐỂ XÓA USER ===
