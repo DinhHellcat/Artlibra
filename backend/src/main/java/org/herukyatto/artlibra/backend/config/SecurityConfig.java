@@ -14,73 +14,75 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.http.HttpMethod; // <<== IMPORT MỚI
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
+import org.herukyatto.artlibra.backend.security.CustomAuthenticationEntryPoint; // <<== IMPORT MỚI
 
 import java.util.Arrays;
+import java.util.List;
 
-/**
- * Lớp cấu hình chính cho Spring Security.
- */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    // Inject các bean cần thiết qua constructor
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint; // <<== INJECT MÀY DÒ LỖI
 
-    /**
-     * Định nghĩa chuỗi bộ lọc bảo mật (Security Filter Chain).
-     * Đây là nơi cấu hình các quy tắc truy cập cho các đường dẫn URL.
-     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Vô hiệu hóa CSRF (Cross-Site Request Forgery) vì chúng ta dùng JWT, không dùng session cookie.
-                .csrf(AbstractHttpConfigurer::disable)
-
-                // 2. Cấu hình quy tắc phân quyền cho các request.
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                // Thêm bộ xử lý exception
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+                )
                 .authorizeHttpRequests(authorize -> authorize
-                        // Cho phép tất cả mọi người truy cập vào các đường dẫn bắt đầu bằng "/api/auth/"
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/users/**").permitAll()
-                        // Tất cả các request còn lại đều yêu cầu phải xác thực.
                         .anyRequest().authenticated()
                 )
-
-                // 3. Quản lý phiên làm việc (session). Đặt là STATELESS để không tạo session phía server.
                 .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // 4. Đăng ký AuthenticationProvider mà chúng ta đã định nghĩa ở dưới.
                 .authenticationProvider(authenticationProvider())
-
-                // 5. Thêm JWT filter của chúng ta vào trước bộ lọc mặc định của Spring.
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /**
-     * Bean để mã hóa mật khẩu.
-     * Sử dụng thuật toán BCrypt mạnh mẽ.
-     */
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // === THAY ĐỔI CUỐI CÙNG NẰM Ở ĐÂY ===
+        // Thay vì "*", chúng ta chỉ định rõ các nguồn được phép.
+        // "null" là nguồn gốc khi bạn mở file HTML trực tiếp từ máy tính.
+        // "http://localhost:3000" là nguồn gốc của frontend React chúng ta sẽ làm sau này.
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "null"));
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "x-auth-token"));
+        configuration.setExposedHeaders(List.of("x-auth-token"));
+
+        // Bây giờ chúng ta có thể dùng `setAllowCredentials(true)` một cách an toàn vì đã chỉ định rõ nguồn gốc
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
-    /**
-     * Bean cung cấp cơ chế xác thực.
-     * Nó kết nối UserDetailsService (để lấy user) và PasswordEncoder (để so sánh mật khẩu).
-     */
+    @Bean
+    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -89,19 +91,11 @@ public class SecurityConfig {
         return authProvider;
     }
 
-    /**
-     * Bean quản lý chính cho quá trình xác thực.
-     * Controller sẽ gọi đến nó.
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    /**
-     * Bean này sẽ được chạy một lần duy nhất khi ứng dụng khởi động.
-     * Dùng để khởi tạo các dữ liệu cần thiết như vai trò (Roles).
-     */
     @Bean
     CommandLineRunner initDatabase(RoleRepository roleRepository) {
         return args -> {

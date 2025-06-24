@@ -1,11 +1,12 @@
 package org.herukyatto.artlibra.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.herukyatto.artlibra.backend.dto.UpdateProfileRequest;
 import org.herukyatto.artlibra.backend.dto.UserProfileResponse;
-import org.herukyatto.artlibra.backend.service.UserService; // <<== Đổi thành interface
+import org.herukyatto.artlibra.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.herukyatto.artlibra.backend.dto.UpdateProfileRequest; // <<== IMPORT MỚI
+import org.springframework.web.multipart.MultipartFile; // <<== Dùng lại thư viện chuẩn
 
 @RestController
 @RequestMapping("/api/users")
@@ -19,14 +20,17 @@ public class UserController {
         return ResponseEntity.ok(userService.getCurrentUserProfile());
     }
 
-    // === ENDPOINT MỚI ĐỂ CẬP NHẬT PROFILE ===
     @PutMapping("/me")
     public ResponseEntity<UserProfileResponse> updateUserProfile(@RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(userService.updateUserProfile(request));
     }
 
-    // === ENDPOINT MỚI ĐỂ XÓA USER ===
-    // TODO: Sau này sẽ thêm @PreAuthorize("hasRole('ADMIN')") để chỉ admin được xóa
+    // === QUAY LẠI PHƯƠNG THỨC UPLOAD GỐC ===
+    @PostMapping("/me/avatar")
+    public ResponseEntity<UserProfileResponse> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(userService.updateAvatar(file));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         try {

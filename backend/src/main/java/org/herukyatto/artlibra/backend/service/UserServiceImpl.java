@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.herukyatto.artlibra.backend.dto.UpdateProfileRequest; // <<== THÊM DÒNG NÀY
+import org.springframework.web.multipart.MultipartFile; // <<== IMPORT MỚI
 
 import java.util.stream.Collectors;
 
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService, UserDetailsService { // <<== Thêm UserService vào đây
 
     private final UserRepository userRepository;
+    private final CloudinaryService cloudinaryService; // <<== INJECT CLOUDINARY SERVICE
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -76,6 +78,37 @@ public class UserServiceImpl implements UserService, UserDetailsService { // <<=
 
         // Chuyển đổi entity đã cập nhật thành DTO để trả về
         return UserProfileResponse.builder()
+                .id(updatedUser.getId())
+                .email(updatedUser.getEmail())
+                .fullName(updatedUser.getFullName())
+                .avatarUrl(updatedUser.getAvatarUrl())
+                .phone(updatedUser.getPhone())
+                .roles(updatedUser.getRoles().stream()
+                        .map(role -> role.getName().name())
+                        .collect(Collectors.toSet()))
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public UserProfileResponse updateAvatar(MultipartFile file) {
+        // Lấy user đang đăng nhập
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!(principal instanceof User)) {
+            throw new IllegalStateException("User not authenticated correctly.");
+        }
+        User currentUser = (User) principal;
+
+        // Tải file lên Cloudinary
+        String avatarUrl = cloudinaryService.uploadFile(file);
+
+        // Cập nhật đường dẫn avatar mới cho user
+        currentUser.setAvatarUrl(avatarUrl);
+        User updatedUser = userRepository.save(currentUser);
+
+        // Trả về profile đã cập nhật
+        return UserProfileResponse.builder()
+                // ... các trường khác ...
                 .id(updatedUser.getId())
                 .email(updatedUser.getEmail())
                 .fullName(updatedUser.getFullName())
