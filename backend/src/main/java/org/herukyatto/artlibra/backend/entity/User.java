@@ -1,6 +1,8 @@
 package org.herukyatto.artlibra.backend.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -20,7 +22,9 @@ import java.util.stream.Collectors;
 })
 @Data
 @NoArgsConstructor
-public class User extends AbstractEntity implements UserDetails { // <<=== THAY ĐỔI QUAN TRỌNG Ở ĐÂY
+@AllArgsConstructor
+@Builder
+public class User extends AbstractEntity implements UserDetails {
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -34,12 +38,22 @@ public class User extends AbstractEntity implements UserDetails { // <<=== THAY 
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(nullable = false)
+    private String phone;
+
+    @Builder.Default // <<== THÊM DÒNG NÀY
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
+    @Column(name = "email_verification_token")
+    private String emailVerificationToken;
+
+    @Builder.Default // <<== THÊM DÒNG NÀY
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
-
 
     // ===================================================================
     // CÁC PHƯƠNG THỨC ĐƯỢC IMPLEMENT TỪ UserDetails

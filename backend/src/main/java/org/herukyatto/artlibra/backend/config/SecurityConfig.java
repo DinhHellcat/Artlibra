@@ -21,6 +21,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod; // <<== IMPORT MỚI
 
 import java.util.Arrays;
 
@@ -50,6 +51,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         // Cho phép tất cả mọi người truy cập vào các đường dẫn bắt đầu bằng "/api/auth/"
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/**").permitAll()
                         // Tất cả các request còn lại đều yêu cầu phải xác thực.
                         .anyRequest().authenticated()
                 )

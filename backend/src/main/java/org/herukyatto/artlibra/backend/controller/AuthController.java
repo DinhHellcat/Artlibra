@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.herukyatto.artlibra.backend.dto.JwtAuthenticationResponse;
+import org.springframework.web.bind.annotation.GetMapping; // Import mới
+import org.springframework.web.bind.annotation.RequestParam; // Import mới
 
 @RestController
 @RequestMapping("/api/auth")
@@ -32,5 +34,13 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<JwtAuthenticationResponse> authenticateUser(@RequestBody LoginRequest loginRequest) {
         return ResponseEntity.ok(authService.signIn(loginRequest));
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
+        // Chúng ta sẽ cần thêm logic xử lý vào AuthService
+        // Tạm thời trả về thông báo
+        // authService.verifyEmail(token);
+        return ResponseEntity.ok("Xác thực email thành công! Bạn có thể đăng nhập ngay bây giờ.");
     }
 }
