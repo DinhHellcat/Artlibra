@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*; // <<== Cập nhật import
 
 @RestController
 @RequestMapping("/api/commissions")
@@ -25,5 +26,13 @@ public class CommissionController {
     public ResponseEntity<Commission> createCommission(@Valid @RequestBody CreateCommissionRequest request) {
         Commission createdCommission = commissionService.createCommission(request);
         return new ResponseEntity<>(createdCommission, HttpStatus.CREATED);
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCommission(@PathVariable Long id) {
+        // Chúng ta không cần @PreAuthorize ở đây vì đã xử lý quyền trong Service
+        // Điều này cho phép chúng ta trả về các thông báo lỗi tùy chỉnh hơn
+        commissionService.deleteCommission(id);
+        // Trả về 204 No Content khi xóa thành công
+        return ResponseEntity.noContent().build();
     }
 }
