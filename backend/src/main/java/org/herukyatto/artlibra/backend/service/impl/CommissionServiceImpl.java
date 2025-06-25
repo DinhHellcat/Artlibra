@@ -2,11 +2,13 @@ package org.herukyatto.artlibra.backend.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.herukyatto.artlibra.backend.dto.ClientSummaryResponse;
+import org.herukyatto.artlibra.backend.dto.CommissionDetailResponse;
 import org.herukyatto.artlibra.backend.dto.CommissionSummaryResponse;
 import org.herukyatto.artlibra.backend.dto.CreateCommissionRequest;
 import org.herukyatto.artlibra.backend.entity.Commission;
 import org.herukyatto.artlibra.backend.entity.CommissionStatus;
 import org.herukyatto.artlibra.backend.entity.User;
+import org.herukyatto.artlibra.backend.exception.ResourceNotFoundException;
 import org.herukyatto.artlibra.backend.repository.CommissionRepository;
 import org.herukyatto.artlibra.backend.service.CommissionService;
 import org.springframework.data.domain.Page;
@@ -25,11 +27,9 @@ public class CommissionServiceImpl implements CommissionService {
     @Override
     public Commission createCommission(CreateCommissionRequest request) {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
         if (!currentUser.isEmailVerified()) {
             throw new AccessDeniedException("You must verify your email before creating a commission.");
         }
-
         Commission commission = Commission.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -39,7 +39,6 @@ public class CommissionServiceImpl implements CommissionService {
                 .client(currentUser)
                 .status(CommissionStatus.OPEN)
                 .build();
-
         return commissionRepository.save(commission);
     }
 
@@ -47,19 +46,14 @@ public class CommissionServiceImpl implements CommissionService {
     public void deleteCommission(Long commissionId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-
         Commission commissionToDelete = commissionRepository.findById(commissionId)
-                .orElseThrow(() -> new IllegalArgumentException("Commission not found with id: " + commissionId));
-
+                .orElseThrow(() -> new ResourceNotFoundException("Commission not found with id: " + commissionId));
         boolean isAdmin = currentUser.getAuthorities().stream()
                 .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
-
         boolean isOwner = commissionToDelete.getClient().getId().equals(currentUser.getId());
-
         if (!isAdmin && !isOwner) {
             throw new AccessDeniedException("You do not have permission to delete this commission.");
         }
-
         commissionRepository.delete(commissionToDelete);
     }
 
@@ -69,16 +63,42 @@ public class CommissionServiceImpl implements CommissionService {
         return commissionPage.map(this::convertToSummaryDto);
     }
 
+    // === PHƯƠNG THỨC MỚI ĐỂ LẤY CHI TIẾT ===
+    @Override
+    public CommissionDetailResponse getCommissionById(Long commissionId) {
+        Commission commission = commissionRepository.findById(commissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commission not found with id: " + commissionId));
+        return convertToDetailDto(commission);
+    }
+
+    // --- CÁC HÀM TIỆN ÍCH CHUYỂN ĐỔI ---
     private CommissionSummaryResponse convertToSummaryDto(Commission commission) {
         ClientSummaryResponse clientDto = new ClientSummaryResponse(
                 commission.getClient().getId(),
                 commission.getClient().getFullName(),
                 commission.getClient().getAvatarUrl()
         );
-
         return CommissionSummaryResponse.builder()
                 .id(commission.getId())
                 .title(commission.getTitle())
+                .minBudget(commission.getMinBudget())
+                .maxBudget(commission.getMaxBudget())
+                .deadline(commission.getDeadline())
+                .status(commission.getStatus())
+                .client(clientDto)
+                .build();
+    }
+
+    private CommissionDetailResponse convertToDetailDto(Commission commission) {
+        ClientSummaryResponse clientDto = new ClientSummaryResponse(
+                commission.getClient().getId(),
+                commission.getClient().getFullName(),
+                commission.getClient().getAvatarUrl()
+        );
+        return CommissionDetailResponse.builder()
+                .id(commission.getId())
+                .title(commission.getTitle())
+                .description(commission.getDescription())
                 .minBudget(commission.getMinBudget())
                 .maxBudget(commission.getMaxBudget())
                 .deadline(commission.getDeadline())

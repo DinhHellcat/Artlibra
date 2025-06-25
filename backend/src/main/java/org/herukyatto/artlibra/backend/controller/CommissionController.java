@@ -2,6 +2,7 @@ package org.herukyatto.artlibra.backend.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.herukyatto.artlibra.backend.dto.CommissionDetailResponse;
 import org.herukyatto.artlibra.backend.dto.CommissionSummaryResponse;
 import org.herukyatto.artlibra.backend.dto.CreateCommissionRequest;
 import org.herukyatto.artlibra.backend.entity.Commission;
@@ -27,15 +28,22 @@ public class CommissionController {
         return new ResponseEntity<>(createdCommission, HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCommission(@PathVariable Long id) {
-        commissionService.deleteCommission(id);
-        return ResponseEntity.noContent().build();
-    }
-
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<CommissionSummaryResponse>> getOpenCommissions(Pageable pageable) {
         return ResponseEntity.ok(commissionService.getOpenCommissions(pageable));
+    }
+
+    // === ENDPOINT MỚI ĐỂ LẤY CHI TIẾT ===
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<CommissionDetailResponse> getCommissionById(@PathVariable Long id) {
+        return ResponseEntity.ok(commissionService.getCommissionById(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCommission(@PathVariable Long id) {
+        commissionService.deleteCommission(id);
+        return ResponseEntity.noContent().build();
     }
 }

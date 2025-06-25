@@ -1,5 +1,6 @@
 package org.herukyatto.artlibra.backend.service;
 
+import org.herukyatto.artlibra.backend.dto.CommissionDetailResponse;
 import org.herukyatto.artlibra.backend.dto.CommissionSummaryResponse;
 import org.herukyatto.artlibra.backend.dto.CreateCommissionRequest;
 import org.herukyatto.artlibra.backend.entity.Commission;
@@ -10,4 +11,5 @@ public interface CommissionService {
     Commission createCommission(CreateCommissionRequest request);
     void deleteCommission(Long commissionId);
     Page<CommissionSummaryResponse> getOpenCommissions(Pageable pageable);
+    CommissionDetailResponse getCommissionById(Long commissionId); // <<== Thêm phương thức này
 }
