@@ -5,6 +5,7 @@ import org.herukyatto.artlibra.backend.dto.UpdateProfileRequest;
 import org.herukyatto.artlibra.backend.dto.UserProfileResponse;
 import org.herukyatto.artlibra.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile; // <<== Dùng lại thư viện chuẩn
 
@@ -32,6 +33,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')") // Chỉ những user có vai trò ADMIN mới được gọi API này
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         try {
             userService.deleteUser(id);

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.mail.SimpleMailMessage; // Import mới
 import org.springframework.mail.javamail.JavaMailSender; // Import mới
 import java.util.UUID; // Import mới
+import org.springframework.transaction.annotation.Transactional; // Import mới
 
 import java.util.Set;
 
@@ -90,5 +91,18 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password."));
         var jwt = jwtTokenProvider.generateToken(user);
         return new JwtAuthenticationResponse(jwt);
+    }
+
+    @Transactional
+    public void verifyEmail(String token) {
+        // Tìm người dùng bằng token xác thực
+        User user = userRepository.findByEmailVerificationToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid verification token."));
+
+        // Đánh dấu là đã xác thực và xóa token đi để không dùng lại được
+        user.setEmailVerified(true);
+        user.setEmailVerificationToken(null);
+
+        userRepository.save(user);
     }
 }

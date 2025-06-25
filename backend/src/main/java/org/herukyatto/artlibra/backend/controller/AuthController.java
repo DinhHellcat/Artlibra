@@ -38,9 +38,11 @@ public class AuthController {
 
     @GetMapping("/verify-email")
     public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
-        // Chúng ta sẽ cần thêm logic xử lý vào AuthService
-        // Tạm thời trả về thông báo
-        // authService.verifyEmail(token);
-        return ResponseEntity.ok("Xác thực email thành công! Bạn có thể đăng nhập ngay bây giờ.");
+        try {
+            authService.verifyEmail(token); // <<== GỌI LOGIC THẬT SỰ
+            return ResponseEntity.ok("Xác thực email thành công! Bạn có thể đăng nhập ngay bây giờ.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
