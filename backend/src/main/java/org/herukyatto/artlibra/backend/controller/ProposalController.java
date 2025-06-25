@@ -11,7 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/commissions/{commissionId}/proposals")
+@RequestMapping("/api/proposals")
 @RequiredArgsConstructor
 public class ProposalController {
 
@@ -19,10 +19,17 @@ public class ProposalController {
 
     @PostMapping
     @PreAuthorize("hasRole('ARTIST')")
-    public ResponseEntity<Proposal> createProposal(
-            @PathVariable Long commissionId,
-            @Valid @RequestBody CreateProposalRequest request) {
-        Proposal createdProposal = proposalService.createProposal(commissionId, request);
+    public ResponseEntity<Proposal> createProposal(@Valid @RequestBody CreateProposalRequest request) {
+        // Sửa lại ở đây: chỉ truyền vào 1 đối tượng request duy nhất
+        // Service sẽ tự lấy commissionId từ bên trong request.
+        Proposal createdProposal = proposalService.createProposal(request);
         return new ResponseEntity<>(createdProposal, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/{id}/delete")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> deleteProposal(@PathVariable Long id) {
+        proposalService.deleteProposal(id);
+        return ResponseEntity.noContent().build();
     }
 }
