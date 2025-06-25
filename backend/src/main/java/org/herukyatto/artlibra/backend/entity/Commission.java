@@ -40,13 +40,13 @@ public class Commission extends AbstractEntity {
     private CommissionStatus status; // Trạng thái hiện tại của yêu cầu
 
     // Mối quan hệ: Nhiều Commission có thể được tạo bởi một Client
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "client_id", nullable = false)
     @JsonBackReference("user-client-commissions") // <<== THÊM DÒNG NÀY
     private User client;
 
     // Mối quan hệ: Nhiều Commission có thể được thực hiện bởi một Artist
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "artist_id")
     @JsonBackReference("user-artist-commissions") // <<== THÊM DÒNG NÀY
     private User artist;
