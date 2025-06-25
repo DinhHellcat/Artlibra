@@ -7,6 +7,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonBackReference; // <<== IMPORT MỚI
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import java.util.Set;
+import java.util.HashSet;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -54,4 +57,8 @@ public class Commission extends AbstractEntity {
     // Cột để lưu giá cuối cùng đã thỏa thuận
     @Column(name = "agreed_price")
     private BigDecimal agreedPrice;
+
+    @OneToMany(mappedBy = "commission", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("commission-proposals")
+    private Set<Proposal> proposals = new HashSet<>();
 }

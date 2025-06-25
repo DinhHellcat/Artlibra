@@ -6,6 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import com.fasterxml.jackson.annotation.JsonManagedReference; // <<== IMPORT MỚI
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -99,4 +100,8 @@ public class User extends AbstractEntity implements UserDetails {
     public boolean isEnabled() {
         return true; // Tài khoản được kích hoạt
     }
+
+    @OneToMany(mappedBy = "artist", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("user-proposals")
+    private Set<Proposal> proposals = new HashSet<>();
 }
