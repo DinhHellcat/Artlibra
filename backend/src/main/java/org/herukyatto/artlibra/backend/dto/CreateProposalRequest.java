@@ -10,8 +10,8 @@ import java.time.LocalDate;
 
 @Data
 public class CreateProposalRequest {
-    @NotNull(message = "Commission ID cannot be null") // <<== THÊM VÀO
-    private Long commissionId;
+//    @NotNull(message = "Commission ID cannot be null") // <<== THÊM VÀO
+//    private Long commissionId;
 
     @NotBlank(message = "Cover letter cannot be blank")
     private String coverLetter;

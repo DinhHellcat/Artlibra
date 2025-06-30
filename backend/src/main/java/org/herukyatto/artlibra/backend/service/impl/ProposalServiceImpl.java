@@ -7,11 +7,15 @@ import org.herukyatto.artlibra.backend.exception.ResourceNotFoundException;
 import org.herukyatto.artlibra.backend.repository.CommissionRepository;
 import org.herukyatto.artlibra.backend.repository.ProposalRepository;
 import org.herukyatto.artlibra.backend.service.ProposalService;
-import org.springframework.security.access.AccessDeniedException; // <<== Đảm bảo có import này
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.security.core.Authentication;
-import org.springframework.transaction.annotation.Transactional; // <<== IMPORT MỚI
+import org.springframework.transaction.annotation.Transactional;
+import org.herukyatto.artlibra.backend.dto.ArtistSummaryResponse;
+import org.herukyatto.artlibra.backend.dto.ProposalSummaryResponse;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,15 +26,15 @@ public class ProposalServiceImpl implements ProposalService {
 
     // SỬA LẠI PHƯƠNG THỨC NÀY
     @Override
-    public Proposal createProposal(CreateProposalRequest request) {
+    public Proposal createProposal(Long commissionId, CreateProposalRequest request) {
         User currentArtist = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         if (!currentArtist.isEmailVerified()) {
             throw new AccessDeniedException("You must verify your email before submitting a proposal.");
         }
 
-        Commission commission = commissionRepository.findById(request.getCommissionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Commission not found with id: " + request.getCommissionId()));
+        Commission commission = commissionRepository.findById(commissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commission not found with id: " + commissionId));
 
         // ... các logic kiểm tra khác giữ nguyên ...
 
@@ -81,5 +85,43 @@ public class ProposalServiceImpl implements ProposalService {
 
         // Nếu có quyền, tiến hành xóa
         proposalRepository.delete(proposalToDelete);
+    }
+
+    @Override
+    @Transactional // Đảm bảo các lazy-loading hoạt động
+    public List<ProposalSummaryResponse> getProposalsForCommission(Long commissionId) {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        Commission commission = commissionRepository.findById(commissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commission not found with id: " + commissionId));
+
+        // Chỉ chủ của commission mới có quyền xem các proposal
+        if (!commission.getClient().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You do not have permission to view proposals for this commission.");
+        }
+
+        List<Proposal> proposals = proposalRepository.findByCommissionId(commissionId);
+
+        // Chuyển đổi danh sách Proposal Entity sang ProposalSummaryResponse DTO
+        return proposals.stream()
+                .map(this::convertToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    private ProposalSummaryResponse convertToSummaryDto(Proposal proposal) {
+        ArtistSummaryResponse artistDto = new ArtistSummaryResponse(
+                proposal.getArtist().getId(),
+                proposal.getArtist().getFullName(),
+                proposal.getArtist().getAvatarUrl()
+        );
+
+        return ProposalSummaryResponse.builder()
+                .id(proposal.getId())
+                .coverLetter(proposal.getCoverLetter())
+                .proposedPrice(proposal.getProposedPrice())
+                .estimatedCompletionDate(proposal.getEstimatedCompletionDate())
+                .status(proposal.getStatus())
+                .artist(artistDto)
+                .build();
     }
 }

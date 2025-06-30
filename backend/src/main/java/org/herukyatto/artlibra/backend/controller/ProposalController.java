@@ -9,9 +9,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.herukyatto.artlibra.backend.dto.ProposalSummaryResponse;
+import java.util.List;
 
 @RestController
-@RequestMapping("/api/proposals")
+//@RequestMapping("/api/proposals")
+@RequestMapping("/api/commissions/{commissionId}/proposals")
 @RequiredArgsConstructor
 public class ProposalController {
 
@@ -19,17 +22,17 @@ public class ProposalController {
 
     @PostMapping
     @PreAuthorize("hasRole('ARTIST')")
-    public ResponseEntity<Proposal> createProposal(@Valid @RequestBody CreateProposalRequest request) {
-        // Sửa lại ở đây: chỉ truyền vào 1 đối tượng request duy nhất
-        // Service sẽ tự lấy commissionId từ bên trong request.
-        Proposal createdProposal = proposalService.createProposal(request);
+    public ResponseEntity<Proposal> createProposal(
+            @PathVariable Long commissionId, // <<== Lấy từ URL
+            @Valid @RequestBody CreateProposalRequest request) {
+        Proposal createdProposal = proposalService.createProposal(commissionId, request);
         return new ResponseEntity<>(createdProposal, HttpStatus.CREATED);
     }
 
-    @PostMapping("/{id}/delete")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> deleteProposal(@PathVariable Long id) {
-        proposalService.deleteProposal(id);
-        return ResponseEntity.noContent().build();
+    // === ENDPOINT MỚI ĐỂ LẤY DANH SÁCH PROPOSAL ===
+    @GetMapping
+    @PreAuthorize("isAuthenticated()") // Chỉ cần đăng nhập, service sẽ kiểm tra quyền chi tiết
+    public ResponseEntity<List<ProposalSummaryResponse>> getProposalsForCommission(@PathVariable Long commissionId) {
+        return ResponseEntity.ok(proposalService.getProposalsForCommission(commissionId));
     }
 }
