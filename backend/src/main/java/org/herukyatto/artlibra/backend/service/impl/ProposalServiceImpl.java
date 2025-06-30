@@ -16,6 +16,7 @@ import org.herukyatto.artlibra.backend.dto.ArtistSummaryResponse;
 import org.herukyatto.artlibra.backend.dto.ProposalSummaryResponse;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.herukyatto.artlibra.backend.entity.ProposalStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -52,8 +53,8 @@ public class ProposalServiceImpl implements ProposalService {
 
     // SỬA LẠI PHƯƠNG THỨC NÀY
     @Override
-    @Transactional // <<== THÊM CHÚ THÍCH NÀY
-    public void deleteProposal(Long proposalId) {
+    @Transactional
+    public void deleteProposal(Long commissionId, Long proposalId) { // <<== SỬA LẠI CHỮ KÝ Ở ĐÂY
         // Lấy thông tin người dùng đang đăng nhập
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
@@ -63,27 +64,22 @@ public class ProposalServiceImpl implements ProposalService {
                 .orElseThrow(() -> new ResourceNotFoundException("Proposal not found with id: " + proposalId));
 
         // Kiểm tra xem proposal có thực sự thuộc commission được chỉ định không
-        // Dòng này không cần thiết với URL mới, nhưng giữ lại cũng không sao
-        // if (!proposalToDelete.getCommission().getId().equals(commissionId)) {
-        //     throw new IllegalArgumentException("Proposal does not belong to the specified commission.");
-        // }
+        if (!proposalToDelete.getCommission().getId().equals(commissionId)) {
+            throw new IllegalArgumentException("Proposal does not belong to the specified commission.");
+        }
 
         // Kiểm tra quyền hạn
         boolean isAdmin = currentUser.getAuthorities().stream()
                 .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
 
-        // Quyền của Họa sĩ: là người tạo ra proposal này
         boolean isProposalOwner = proposalToDelete.getArtist().getId().equals(currentUser.getId());
 
-        // Quyền của Client: là chủ của commission mà proposal này thuộc về
         boolean isCommissionOwner = proposalToDelete.getCommission().getClient().getId().equals(currentUser.getId());
 
-        // Nếu không có bất kỳ quyền nào ở trên, từ chối
         if (!isAdmin && !isProposalOwner && !isCommissionOwner) {
             throw new AccessDeniedException("You do not have permission to delete this proposal.");
         }
 
-        // Nếu có quyền, tiến hành xóa
         proposalRepository.delete(proposalToDelete);
     }
 
@@ -123,5 +119,46 @@ public class ProposalServiceImpl implements ProposalService {
                 .status(proposal.getStatus())
                 .artist(artistDto)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public Commission acceptProposal(Long commissionId, Long proposalId) {
+        User currentClient = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        Commission commission = commissionRepository.findById(commissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commission not found with id: " + commissionId));
+
+        Proposal acceptedProposal = proposalRepository.findById(proposalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Proposal not found with id: " + proposalId));
+
+        // 1. Kiểm tra quyền: Chỉ chủ của commission mới được chấp nhận proposal
+        if (!commission.getClient().getId().equals(currentClient.getId())) {
+            throw new AccessDeniedException("You do not have permission to accept a proposal for this commission.");
+        }
+
+        // 2. Kiểm tra trạng thái: Chỉ chấp nhận khi commission đang MỞ
+        if (commission.getStatus() != CommissionStatus.OPEN) {
+            throw new IllegalStateException("This commission is no longer open for proposals.");
+        }
+
+        // 3. Cập nhật trạng thái của proposal được chấp nhận
+        acceptedProposal.setStatus(ProposalStatus.ACCEPTED);
+        proposalRepository.save(acceptedProposal);
+
+        // 4. Cập nhật trạng thái của tất cả các proposal khác thành REJECTED
+        commission.getProposals().stream()
+                .filter(p -> !p.getId().equals(proposalId)) // Lọc ra các proposal khác
+                .forEach(p -> {
+                    p.setStatus(ProposalStatus.REJECTED);
+                    proposalRepository.save(p);
+                });
+
+        // 5. Cập nhật commission với họa sĩ và giá đã chốt
+        commission.setArtist(acceptedProposal.getArtist());
+        commission.setAgreedPrice(acceptedProposal.getProposedPrice());
+        commission.setStatus(CommissionStatus.PENDING_PAYMENT); // Chuyển sang trạng thái chờ thanh toán
+
+        return commissionRepository.save(commission);
     }
 }
