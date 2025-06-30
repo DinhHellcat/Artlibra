@@ -1,13 +1,17 @@
 package org.herukyatto.artlibra.backend.service;
 
 import lombok.RequiredArgsConstructor;
+import org.herukyatto.artlibra.backend.dto.AdminCreateUserRequest;
 import org.herukyatto.artlibra.backend.dto.UserProfileResponse;
+import org.herukyatto.artlibra.backend.entity.Role;
 import org.herukyatto.artlibra.backend.entity.User;
+import org.herukyatto.artlibra.backend.repository.RoleRepository;
 import org.herukyatto.artlibra.backend.repository.UserRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.herukyatto.artlibra.backend.dto.UpdateProfileRequest;
@@ -17,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.herukyatto.artlibra.backend.exception.ResourceNotFoundException;
 
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,7 +29,9 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService, UserDetailsService { // <<== Thêm UserService vào đây
 
     private final UserRepository userRepository;
-    private final CloudinaryService cloudinaryService; // <<== INJECT CLOUDINARY SERVICE
+    private final CloudinaryService cloudinaryService;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -162,5 +169,28 @@ public class UserServiceImpl implements UserService, UserDetailsService { // <<=
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         user.setActive(true); // Đặt trạng thái hoạt động trở lại
         userRepository.save(user);
+    }
+
+    @Override
+    public User createUserByAdmin(AdminCreateUserRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email is already in use.");
+        }
+
+        // Tìm vai trò được chỉ định trong CSDL
+        Role userRole = roleRepository.findByName(request.getRole())
+                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+
+        User user = User.builder()
+                .fullName(request.getFullName())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .phone(request.getPhone())
+                .roles(Set.of(userRole))
+                .emailVerified(request.isEmailVerified()) // Lấy trạng thái xác thực từ request
+                .active(true)
+                .build();
+
+        return userRepository.save(user);
     }
 }
