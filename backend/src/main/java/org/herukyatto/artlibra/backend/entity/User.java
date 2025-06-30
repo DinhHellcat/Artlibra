@@ -107,4 +107,17 @@ public class User extends AbstractEntity implements UserDetails {
     @OneToMany(mappedBy = "artist", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("user-proposals")
     private Set<Proposal> proposals = new HashSet<>();
+
+    @OneToMany(mappedBy = "artist", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("user-portfolio-items")
+    private Set<PortfolioItem> portfolioItems = new HashSet<>();
+
+    // Một Artist có thể có nhiều kỹ năng (Tags)
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_skills",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> skills = new HashSet<>();
 }
