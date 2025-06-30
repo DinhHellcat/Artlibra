@@ -85,10 +85,13 @@ public class User extends AbstractEntity implements UserDetails {
     public boolean isAccountNonExpired() {
         return true; // Tài khoản không bao giờ hết hạn
     }
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean active = true;
 
     @Override
     public boolean isAccountNonLocked() {
-        return true; // Tài khoản không bị khóa
+        return this.active; // Trả về trạng thái active của tài khoản
     }
 
     @Override

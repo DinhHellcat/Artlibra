@@ -15,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.herukyatto.artlibra.backend.dto.AdminUserViewResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
+import org.herukyatto.artlibra.backend.exception.ResourceNotFoundException;
 
 import java.util.stream.Collectors;
 
@@ -145,5 +145,22 @@ public class UserServiceImpl implements UserService, UserDetailsService { // <<=
                         .map(role -> role.getName().name())
                         .collect(Collectors.toSet()))
                 .build();
+    }
+
+    @Override
+    public void banUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        user.setActive(false); // Đặt trạng thái không hoạt động
+        userRepository.save(user);
+    }
+
+    // === PHƯƠNG THỨC MỚI ĐỂ MỞ KHÓA USER ===
+    @Override
+    public void unbanUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        user.setActive(true); // Đặt trạng thái hoạt động trở lại
+        userRepository.save(user);
     }
 }

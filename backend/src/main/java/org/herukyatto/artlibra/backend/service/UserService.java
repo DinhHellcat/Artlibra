@@ -13,4 +13,6 @@ public interface UserService {
     UserProfileResponse updateUserProfile(UpdateProfileRequest request);
     UserProfileResponse updateAvatar(MultipartFile file);
     Page<AdminUserViewResponse> getAllUsers(Pageable pageable);
+    void banUser(Long userId);
+    void unbanUser(Long userId);
 }
