@@ -10,8 +10,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.herukyatto.artlibra.backend.dto.UpdateProfileRequest; // <<== THÊM DÒNG NÀY
-import org.springframework.web.multipart.MultipartFile; // <<== IMPORT MỚI
+import org.herukyatto.artlibra.backend.dto.UpdateProfileRequest;
+import org.springframework.web.multipart.MultipartFile;
+import org.herukyatto.artlibra.backend.dto.AdminUserViewResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 
 import java.util.stream.Collectors;
 
@@ -115,6 +119,29 @@ public class UserServiceImpl implements UserService, UserDetailsService { // <<=
                 .avatarUrl(updatedUser.getAvatarUrl())
                 .phone(updatedUser.getPhone())
                 .roles(updatedUser.getRoles().stream()
+                        .map(role -> role.getName().name())
+                        .collect(Collectors.toSet()))
+                .build();
+    }
+
+    @Override
+    public Page<AdminUserViewResponse> getAllUsers(Pageable pageable) {
+        // Lấy một trang người dùng từ CSDL
+        Page<User> userPage = userRepository.findAll(pageable);
+        // Chuyển đổi mỗi User Entity sang AdminUserViewResponse DTO
+        return userPage.map(this::convertToAdminViewDto);
+    }
+
+    // Hàm tiện ích để chuyển đổi
+    private AdminUserViewResponse convertToAdminViewDto(User user) {
+        return AdminUserViewResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .phone(user.getPhone())
+                .emailVerified(user.isEmailVerified())
+                .createdAt(user.getCreatedAt())
+                .roles(user.getRoles().stream()
                         .map(role -> role.getName().name())
                         .collect(Collectors.toSet()))
                 .build();
